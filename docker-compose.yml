@@ -48,6 +48,10 @@ services:
       - DB_USER=${DB_USER}
       - DB_PASSWORD=${DB_PASSWORD}
       - DB_NAME=${DB_NAME}
+      - KIMI_API_KEY=${KIMI_API_KEY}
+      - KIMI_API_URL=${KIMI_API_URL}
+      - ALI_API_KEY=${ALI_API_KEY}
+      - ALI_API_URL=${ALI_API_URL}
     depends_on:
       db:
         condition: service_healthy

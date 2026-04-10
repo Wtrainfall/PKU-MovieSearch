@@ -1,4 +1,5 @@
 from elasticsearch import Elasticsearch
+import os
 
 index = {
       "settings": {
@@ -73,7 +74,7 @@ index = {
       }
     }
 
-es = Elasticsearch(hosts=["http://localhost:9200"])
+es = Elasticsearch(hosts=[os.environ.get('ELASTICSEARCH_URL')])
 index_name = "movies"
 
 if es.indices.exists(index=index_name):

@@ -1,10 +1,10 @@
 from elasticsearch import Elasticsearch
 from embeddingData import embeddingData
-
+import os
 
 class queryData:
     def __init__(self):
-        self.es = Elasticsearch(hosts=["http://localhost:9200"])
+        self.es = Elasticsearch(hosts=[os.environ.get('ELASTICSEARCH_URL'])
 
     def natural_language_query(self, index_name, query_text, top_k=5):
         embedding = embeddingData()

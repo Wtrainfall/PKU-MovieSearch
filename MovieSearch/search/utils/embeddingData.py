@@ -1,11 +1,12 @@
+import os
 from openai import OpenAI
 
 class embeddingData:
     def __init__(self):
 
         self.client = OpenAI(
-            api_key="sk-07463790df7241679d3489b7e5902eab",
-            base_url="https://dashscope.aliyuncs.com/compatible-mode/v1"
+            api_key=os.environ.get('ALI_API_KEY'),
+            base_url=os.environ.get('ALI_API_URL')
         )
     
     def get_embedding(self, string):

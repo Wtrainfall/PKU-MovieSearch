@@ -1,8 +1,9 @@
 from elasticsearch import Elasticsearch
+import os
 
 class importData:
     def __init__(self, content, target_index):
-        self.es = Elasticsearch(["http://localhost:9200"])
+        self.es = Elasticsearch([os.environ.get('ELASTICSEARCH_URL')])
         self.content = content
         self.target_index = target_index
 

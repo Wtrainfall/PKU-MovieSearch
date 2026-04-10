@@ -1,10 +1,11 @@
+import os
 from openai import OpenAI
 
 class getSummary:
     def __init__(self):
         self.client = OpenAI(
-            api_key="sk-ZBhOOmr0LMkGcMmFuPdCEvI8EpwMF6ADaUoMhYqVZVEfl1Xs",
-            base_url="https://api.moonshot.cn/v1"
+            api_key=os.environ.get("KIMI_API_KEY")
+            base_url=os.environ.get("KIMI_API_URL")
         )
 
     def get_summary(self, string):
