@@ -1,7 +1,5 @@
 Django>=4.2,<5.0
 mysqlclient>=2.0
 python-dotenv
-elasticsearch>=8.0
-django-elasticsearch-dsl>=8.0
-mysqlclient>=2.0
-python-dotenv
+elasticsearch>=8.0,<9.0  
+django-elasticsearch-dsl>=8.0,<9.0  

@@ -75,12 +75,14 @@ index = {
     }
 
 es = Elasticsearch(hosts=[os.environ.get('ELASTICSEARCH_URL')])
+                   
+print(os.environ.get('ELASTICSEARCH_URL'))
 index_name = "movies"
 
 if es.indices.exists(index=index_name):
     es.indices.delete(index=index_name)
-    es.indices.create(index=index_name, **index)
+    es.indices.create(index=index_name, body=index)
 else:
-    es.indices.create(index=index_name, **index)
+    es.indices.create(index=index_name, body=index)
 
 print("Index created successfully.")
