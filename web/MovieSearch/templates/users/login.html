@@ -1,0 +1,9 @@
+{% block content %}
+<h2>登录</h2>
+<form method="post">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <button type="submit">登录</button>
+</form>
+<p>还没有账号？<a href="{% url 'users:register' %}">立即注册</a></p>
+{% endblock %}
