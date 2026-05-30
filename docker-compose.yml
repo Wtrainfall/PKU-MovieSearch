@@ -48,10 +48,12 @@ services:
       - DB_USER=${DB_USER}
       - DB_PASSWORD=${DB_PASSWORD}
       - DB_NAME=${DB_NAME}
-      - KIMI_API_KEY=${KIMI_API_KEY}
-      - KIMI_API_URL=${KIMI_API_URL}
-      - ALI_API_KEY=${ALI_API_KEY}
-      - ALI_API_URL=${ALI_API_URL}
+      - QWEN_API_KEY=${QWEN_API_KEY}
+      - QWEN_BASE_URL=${QWEN_BASE_URL}
+      - QWEN_CHAT_MODEL=${QWEN_CHAT_MODEL}
+      - QWEN_AGENT_MODEL=${QWEN_AGENT_MODEL}
+      - QWEN_SUMMARY_MODEL=${QWEN_SUMMARY_MODEL}
+      - QWEN_EMBEDDING_MODEL=${QWEN_EMBEDDING_MODEL}
     depends_on:
       db:
         condition: service_healthy

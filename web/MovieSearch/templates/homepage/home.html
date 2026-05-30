@@ -1,10 +1,567 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
-	<title>Movie Search</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PKU Movie Search</title>
+    <style>
+        :root {
+            --bg: #f4efe6;
+            --ink: #1d1a16;
+            --muted: #72685b;
+            --card: #fffaf0;
+            --line: #dacdbb;
+            --accent: #b2452d;
+            --accent-dark: #7c2e20;
+            --gold: #d49b43;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            color: var(--ink);
+            font-family: Georgia, "Noto Serif SC", "Songti SC", serif;
+            background:
+                radial-gradient(circle at top left, rgba(212, 155, 67, 0.25), transparent 34rem),
+                linear-gradient(135deg, #f8f0df 0%, var(--bg) 48%, #eadcca 100%);
+        }
+
+        .page {
+            width: min(1120px, calc(100% - 32px));
+            margin: 0 auto;
+            padding: 48px 0;
+        }
+
+        .hero {
+            display: grid;
+            grid-template-columns: 1.05fr 0.95fr;
+            gap: 28px;
+            align-items: stretch;
+        }
+
+        .panel {
+            border: 1px solid var(--line);
+            background: rgba(255, 250, 240, 0.9);
+            box-shadow: 0 24px 80px rgba(59, 42, 27, 0.14);
+            border-radius: 28px;
+        }
+
+        .intro {
+            padding: 36px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .intro::after {
+            content: "";
+            position: absolute;
+            right: -80px;
+            bottom: -80px;
+            width: 220px;
+            height: 220px;
+            border-radius: 999px;
+            border: 28px solid rgba(178, 69, 45, 0.08);
+        }
+
+        .eyebrow {
+            color: var(--accent-dark);
+            font-size: 14px;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            margin: 0 0 18px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: clamp(40px, 7vw, 82px);
+            line-height: 0.94;
+            letter-spacing: -0.06em;
+        }
+
+        .lead {
+            max-width: 680px;
+            margin: 24px 0 0;
+            color: var(--muted);
+            font-size: 18px;
+            line-height: 1.8;
+        }
+
+        .status {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 26px;
+        }
+
+        .pill {
+            padding: 8px 12px;
+            border: 1px solid rgba(178, 69, 45, 0.2);
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.45);
+            color: var(--accent-dark);
+            font-size: 13px;
+        }
+
+        .chat {
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            min-height: 520px;
+        }
+
+        .chat-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 18px;
+        }
+
+        .chat-title h2 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        .hint {
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .messages {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            padding: 18px;
+            border-radius: 22px;
+            border: 1px solid var(--line);
+            background: rgba(255, 255, 255, 0.4);
+            overflow-y: auto;
+            min-height: 300px;
+        }
+
+        .message {
+            max-width: 92%;
+            padding: 14px 16px;
+            border-radius: 18px;
+            line-height: 1.65;
+            white-space: pre-wrap;
+        }
+
+        .message.user {
+            align-self: flex-end;
+            color: white;
+            background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+            border-bottom-right-radius: 6px;
+        }
+
+        .message.agent {
+            align-self: flex-start;
+            background: #fff;
+            border: 1px solid var(--line);
+            border-bottom-left-radius: 6px;
+        }
+
+        .composer {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 76px;
+            resize: vertical;
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            padding: 14px 16px;
+            color: var(--ink);
+            background: rgba(255, 255, 255, 0.78);
+            font: inherit;
+            outline: none;
+        }
+
+        textarea:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 4px rgba(178, 69, 45, 0.12);
+        }
+
+        button {
+            border: 0;
+            border-radius: 18px;
+            padding: 0 22px;
+            color: white;
+            background: var(--ink);
+            font: inherit;
+            cursor: pointer;
+            transition: transform 0.18s ease, opacity 0.18s ease;
+        }
+
+        button:hover {
+            transform: translateY(-1px);
+        }
+
+        button:disabled {
+            cursor: wait;
+            opacity: 0.55;
+        }
+
+        .evidence {
+            margin-top: 24px;
+            padding: 24px;
+        }
+
+        .state-panel {
+            margin-top: 24px;
+            padding: 24px;
+        }
+
+        .state-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .state-block {
+            border: 1px solid var(--line);
+            border-radius: 20px;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        .state-block h3 {
+            margin: 0 0 10px;
+            font-size: 17px;
+        }
+
+        .state-list {
+            margin: 0;
+            padding-left: 18px;
+            color: #3a332d;
+            line-height: 1.7;
+            font-size: 14px;
+        }
+
+        .state-list li + li {
+            margin-top: 6px;
+        }
+
+        .confidence {
+            display: inline-block;
+            margin-left: 6px;
+            color: var(--accent-dark);
+            font-size: 12px;
+        }
+
+        .evidence h2,
+        .state-panel h2 {
+            margin: 0 0 16px;
+            font-size: 24px;
+        }
+
+        .evidence-list {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 14px;
+        }
+
+        .evidence-card {
+            border: 1px solid var(--line);
+            border-radius: 20px;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.56);
+        }
+
+        .evidence-card strong {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--accent-dark);
+        }
+
+        .meta {
+            color: var(--muted);
+            font-size: 13px;
+            margin-bottom: 10px;
+        }
+
+        .summary {
+            margin: 0;
+            color: #3a332d;
+            font-size: 14px;
+            line-height: 1.65;
+        }
+
+        .empty {
+            color: var(--muted);
+            margin: 0;
+        }
+
+        @media (max-width: 860px) {
+            .hero,
+            .state-grid,
+            .evidence-list {
+                grid-template-columns: 1fr;
+            }
+
+            .composer {
+                grid-template-columns: 1fr;
+            }
+
+            button {
+                min-height: 52px;
+            }
+        }
+    </style>
 </head>
 <body>
-	<h1>Welcome to Movie Search</h1>
-	<p>Search for movies, actors, directors, genres, etc.</p>
+    <main class="page">
+        <section class="hero">
+            <div class="panel intro">
+                <p class="eyebrow">Elasticsearch Hybrid Search + DeepAgent</p>
+                <h1>电影剧本证据检索助手</h1>
+                <p class="lead">
+                    输入一个自然语言问题，后端会先进行关键词与向量混合检索，再让 DeepAgent 基于真实片段证据生成回答。
+                </p>
+                <div class="status">
+                    <span id="movie-count" class="pill">电影数: --</span>
+                    <span id="segment-count" class="pill">片段数: --</span>
+                    <span class="pill">BM25 + Vector + RRF</span>
+                    <span class="pill">Qwen Agent</span>
+                    <span class="pill">answer + evidence</span>
+                </div>
+            </div>
+
+            <div class="panel chat">
+                <div class="chat-title">
+                    <h2>对话测试</h2>
+                    <span class="hint">调用 {% url 'search:agent' %}</span>
+                </div>
+
+                <div id="messages" class="messages">
+                    <div class="message agent">可以问：“帮我找一个傲慢失明军官和年轻学生互相影响的电影片段，并说明为什么相关”。</div>
+                </div>
+
+                <form id="chat-form" class="composer">
+                    <textarea id="question" placeholder="输入你的电影检索问题...">帮我找一个傲慢失明军官和年轻学生互相影响的电影片段，并说明为什么相关</textarea>
+                    <button id="send" type="submit">检索</button>
+                </form>
+            </div>
+        </section>
+
+        <section class="panel evidence">
+            <h2>检索证据</h2>
+            <div id="evidence-list" class="evidence-list">
+                <p class="empty">提交问题后，这里会显示 agent 使用的片段 evidence。</p>
+            </div>
+        </section>
+
+        <section class="panel state-panel">
+            <h2>线索状态</h2>
+            <div class="state-grid">
+                <div class="state-block">
+                    <h3>当前线索</h3>
+                    <ul id="clue-state" class="state-list">
+                        <li>暂无线索。</li>
+                    </ul>
+                </div>
+                <div class="state-block">
+                    <h3>候选验证</h3>
+                    <ul id="candidate-review" class="state-list">
+                        <li>暂无候选。</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        const form = document.getElementById("chat-form");
+        const questionInput = document.getElementById("question");
+        const sendButton = document.getElementById("send");
+        const messages = document.getElementById("messages");
+        const evidenceList = document.getElementById("evidence-list");
+        const clueState = document.getElementById("clue-state");
+        const candidateReview = document.getElementById("candidate-review");
+        const movieCount = document.getElementById("movie-count");
+        const segmentCount = document.getElementById("segment-count");
+        const threadId = getOrCreateThreadId();
+        const agentApiUrl = "{% url 'search:agent' %}";
+        const statsApiUrl = "{% url 'search:stats' %}";
+
+        function addMessage(text, role) {
+            const item = document.createElement("div");
+            item.className = `message ${role}`;
+            item.textContent = text;
+            messages.appendChild(item);
+            messages.scrollTop = messages.scrollHeight;
+        }
+
+        function renderEvidence(items) {
+            evidenceList.innerHTML = "";
+            if (!items || items.length === 0) {
+                evidenceList.innerHTML = '<p class="empty">没有返回 evidence。</p>';
+                return;
+            }
+
+            for (const item of items) {
+                const card = document.createElement("article");
+                card.className = "evidence-card";
+                card.innerHTML = `
+                    <strong>${escapeHtml(item.movie_title)} · 片段 ${item.segment_index}</strong>
+                    <div class="meta">${escapeHtml(item.id)} · ${escapeHtml((item.sources || []).join(" + "))}</div>
+                    <p class="summary">${escapeHtml(item.summary || "")}</p>
+                `;
+                evidenceList.appendChild(card);
+            }
+        }
+
+        function renderClueState(state) {
+            const confirmed = state?.confirmed_clues || [];
+            const uncertain = state?.uncertain_clues || [];
+            const excluded = state?.excluded_titles || [];
+            const negative = state?.negative_feedback || [];
+            const rows = [
+                ["确定", confirmed],
+                ["不确定", uncertain],
+                ["排除", excluded],
+                ["否认", negative]
+            ];
+
+            clueState.innerHTML = "";
+            for (const [label, values] of rows) {
+                const item = document.createElement("li");
+                item.textContent = `${label}: ${values.length ? values.slice(-8).join("、") : "暂无"}`;
+                clueState.appendChild(item);
+            }
+        }
+
+        function renderCandidateReview(review) {
+            candidateReview.innerHTML = "";
+            const candidates = review?.candidates || [];
+            if (!candidates.length) {
+                candidateReview.innerHTML = `<li>暂无候选。${review?.review_source ? `来源: ${escapeHtml(review.review_source)}` : ""}</li>`;
+                return;
+            }
+
+            if (review.review_source) {
+                const source = document.createElement("li");
+                source.textContent = `评估来源: ${review.review_source}`;
+                candidateReview.appendChild(source);
+            }
+
+            for (const item of candidates.slice(0, 5)) {
+                const row = document.createElement("li");
+                row.innerHTML = `
+                    ${escapeHtml(item.movie_title || "未知")}
+                    <span class="confidence">${escapeHtml(item.confidence || "unknown")}</span>
+                    <br>匹配：${escapeHtml((item.matched_clues || []).join("、") || "暂无")}
+                `;
+                candidateReview.appendChild(row);
+            }
+
+            if (review.should_ask_followup && review.followup_question) {
+                const row = document.createElement("li");
+                row.textContent = `建议追问: ${review.followup_question}`;
+                candidateReview.appendChild(row);
+            }
+        }
+
+        function escapeHtml(value) {
+            return String(value)
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;")
+                .replaceAll('"', "&quot;")
+                .replaceAll("'", "&#039;");
+        }
+
+        function getOrCreateThreadId() {
+            const storageKey = "movie-search-thread-id";
+            const existing = sessionStorage.getItem(storageKey);
+            if (existing) {
+                return existing;
+            }
+
+            const value = crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
+            sessionStorage.setItem(storageKey, value);
+            return value;
+        }
+
+        function getCookie(name) {
+            const cookies = document.cookie ? document.cookie.split(";") : [];
+            for (const cookie of cookies) {
+                const [rawKey, ...rawValue] = cookie.trim().split("=");
+                if (rawKey === name) {
+                    return decodeURIComponent(rawValue.join("="));
+                }
+            }
+            return "";
+        }
+
+        async function loadStats() {
+            try {
+                const response = await fetch(statsApiUrl);
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.detail || data.error || "统计失败");
+                }
+
+                movieCount.textContent = `电影数: ${data.movie_count}`;
+                segmentCount.textContent = `片段数: ${data.segment_count}`;
+            } catch (error) {
+                movieCount.textContent = "电影数: 获取失败";
+                segmentCount.textContent = "片段数: 获取失败";
+            }
+        }
+
+        form.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            const question = questionInput.value.trim();
+            if (!question) {
+                return;
+            }
+
+            addMessage(question, "user");
+            sendButton.disabled = true;
+            sendButton.textContent = "检索中";
+
+            try {
+                const response = await fetch(agentApiUrl, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": getCookie("csrftoken")
+                    },
+                    body: JSON.stringify({
+                        question,
+                        top_k: 3,
+                        thread_id: threadId
+                    })
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.detail || data.error || "请求失败");
+                }
+
+                const answer = data.answer || "没有返回回答。";
+                addMessage(answer, "agent");
+                renderEvidence(data.evidence);
+                renderClueState(data.clue_state);
+                renderCandidateReview(data.candidate_review);
+            } catch (error) {
+                addMessage(`调用失败：${error.message}`, "agent");
+            } finally {
+                sendButton.disabled = false;
+                sendButton.textContent = "检索";
+            }
+        });
+
+        loadStats();
+    </script>
 </body>
 </html>

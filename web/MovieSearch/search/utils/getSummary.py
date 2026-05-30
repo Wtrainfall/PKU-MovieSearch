@@ -1,106 +1,41 @@
-import os
-from openai import OpenAI
+from config.qwen import build_qwen_client, get_qwen_chat_model
+
+
+SUMMARY_SYSTEM_PROMPT = (
+    "你是一个电影剧本摘要生成器，专注于提取剧本片段的主要情节、场景、"
+    "关键信息和重要人物，并生成简练的摘要。"
+)
+
+SUMMARY_PROMPT_TEMPLATE = """
+请为以下电影剧本片段生成一个简要的摘要。
+
+要求：
+1、提取片段中的主要情节、场景、关键信息和重要人物，突出故事的核心内容。
+2、摘要必须简练，长度不超过300字。
+3、使用中文回答，只需要回答摘要内容，不需其他解释或说明。
+4、无需分点作答，直接给出连贯的摘要文本。
+
+片段内容：
+{content}
+
+请为以上片段生成一个符合要求的摘要。
+"""
+
 
 class getSummary:
     def __init__(self):
-        self.client = OpenAI(
-            api_key=os.environ.get("KIMI_API_KEY")
-            base_url=os.environ.get("KIMI_API_URL")
-        )
+        self.client = build_qwen_client()
+        self.model = get_qwen_chat_model('QWEN_SUMMARY_MODEL')
 
     def get_summary(self, string):
-
-        prompt = f"""
-                    请为以下电影剧本片段生成一个简要的摘要。
-
-                    要求：1、提取片段中的主要情节、场景、关键信息和重要人物，突出故事的核心内容。
-                        2、摘要必须简练，长度不超过300字。
-                        3、使用中文回答，只需要回答摘要内容，不需其他解释或说明。
-                        4、无需分点作答，直接给出连贯的摘要文本。
-
-                    片段内容：
-                    {string}
-
-                    请为以上片段生成一个符合要求的摘要。
-                  """
+        prompt = SUMMARY_PROMPT_TEMPLATE.format(content=string)
 
         completion = self.client.chat.completions.create(
-            model = "kimi-k2-0905-preview",
-            messages = [
-                {"role": "system", "content": "你是一个电影剧本摘要生成器，专注于提取剧本片段的主要情节、场景、关键信息和重要人物，并生成简练的摘要。"},
-                {"role": "user", "content": prompt}
-
-            ]
+            model=self.model,
+            messages=[
+                {'role': 'system', 'content': SUMMARY_SYSTEM_PROMPT},
+                {'role': 'user', 'content': prompt},
+            ],
         )
 
         return completion.choices[0].message.content
-
-if __name__ == '__main__':
-    
-    s = """
-            遥远的太空中
-            一颗中子星正沿着轨道高速行进，粉碎着任何阻挡它的天体。
-            星系中央的黑暗把它吸引住了——那是一个黑洞。
-            中子星被拉向巨大的漩涡中，在触碰到黑洞边缘的一瞬间爆炸了——爆炸异常强烈以致一部分冲击波逃离了黑洞引力。
-            一小束冲击波消失在了一个水晶球样的太空洞中，突然出现在了太阳系。
-            这束逐渐微弱的冲击波经过太阳，来到了地球。
-            
-            北美某处沙漠仓库的控制室
-            一个男人在显示器上发现了不寻常的脉冲图像，手中的咖啡杯跌落在地上。
-            
-            CUT TO
-            帕萨迪纳，加州理工学院，LIGO（激光干涉引力波天文台）办公室
-            ANSEN，一个年过六十的老教授，从年轻助手手里拿过关于这次脉冲的报告。
-            突然，一大队联邦特工和NSA探员包围了建筑。两个NSA探员推开门，走进办公室。
-            
-            NSA探员
-            教授，你一直认为政府不重视你的科研项目，
-            现在你得到我们的关注了。
-            
-            ARSEN让助手打开显示屏。
-            
-            ARSEN
-            昨天早上我们在HANFORD的仪器上监测到了
-            一颗中子星和黑洞产生的爆炸。
-            
-            探员
-            这我们知道，但是爆炸似乎来自于太阳系。
-            
-            ARSEN在屏幕上演示中子星和黑洞遭遇并爆炸的一系列过程。
-            
-            ARSEN
-            如果爆炸发生在太阳系的话，我们都已经死了。
-            唯一的解释是，波穿过了一个虫洞到达了我们星球。
-            探员
-            我读过你的书，书里你可说虫洞不能存在。
-            ARSEN
-            虫洞不可能天然存在。况且如果建造出了虫洞，要使它稳定
-            更是难上加难。所以虫洞只能是更先进的文明建造的。
-            
-            他看着略显担心的探员。
-            ARSEN
-            如果你担心先进文明的入侵，既然他们能建造虫洞，那么也可以
-            轻易让我们灭绝；同时也说明我们没有让他们感兴趣的东西。
-            
-            探员注意到年轻助手低下了头，显得有些尴尬。
-            探员
-            你不同意？
-            助手
-            我不认为我们该轻易假设是外星文明建造了虫洞，
-            但是这是一个很好的探索宇宙的机会。
-            
-            探员聚在一起说了些耳语——
-            探员
-            你们现在的工作项目受联邦保密法的约束。
-            断绝一切国际合作，现在起你们的工作属于国家机密。
-            
-            探员扔下文件走了出去。
-            助手
-            你知道他们守不住这个秘密的。
-            ARSEN
-            这我不在乎。我一生都等待着这一天。
-            未来的五十年，一切都将会改变。
-        """
-
-    gs = getSummary().get_summary(s)
-    print(gs)
