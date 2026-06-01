@@ -102,6 +102,7 @@ def simplify_results(results):
                 "rrf_score": round(item["score"], 6),
                 "sources": item["sources"],
                 "ranks": item["ranks"],
+                "movie_id": source.get("movie_id"),
                 "movie_title": source.get("movie_title"),
                 "segment_index": source.get("segment_index"),
                 "summary": source.get("summary"),

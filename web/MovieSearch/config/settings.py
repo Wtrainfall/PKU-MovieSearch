@@ -135,3 +135,27 @@ ELASTICSEARCH_DSL = {
         'hosts': os.environ.get('ELASTICSEARCH_URL')
     },
 }
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'standard': {
+            'format': '[{asctime}] {levelname} {name}: {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'standard',
+        },
+    },
+    'loggers': {
+        'agent': {
+            'handlers': ['console'],
+            'level': os.environ.get('AGENT_LOG_LEVEL', 'INFO'),
+            'propagate': False,
+        },
+    },
+}

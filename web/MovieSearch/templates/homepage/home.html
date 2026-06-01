@@ -223,7 +223,7 @@
 
         .state-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: repeat(3, 1fr);
             gap: 16px;
         }
 
@@ -375,6 +375,12 @@
                         <li>暂无候选。</li>
                     </ul>
                 </div>
+                <div class="state-block">
+                    <h3>检索过程</h3>
+                    <ul id="process-trace" class="state-list">
+                        <li>暂无过程。</li>
+                    </ul>
+                </div>
             </div>
         </section>
     </main>
@@ -387,11 +393,20 @@
         const evidenceList = document.getElementById("evidence-list");
         const clueState = document.getElementById("clue-state");
         const candidateReview = document.getElementById("candidate-review");
+        const processTrace = document.getElementById("process-trace");
         const movieCount = document.getElementById("movie-count");
         const segmentCount = document.getElementById("segment-count");
         const threadId = getOrCreateThreadId();
         const agentApiUrl = "{% url 'search:agent' %}";
+        const agentStreamApiUrl = "{% url 'search:agent_stream' %}";
         const statsApiUrl = "{% url 'search:stats' %}";
+        const movieDetailUrlTemplate = "{% url 'movies:movie_detail' 0 %}";
+        const lastRendered = {
+            evidence: "",
+            candidateReview: "",
+            processTrace: "",
+            processPayload: ""
+        };
 
         function addMessage(text, role) {
             const item = document.createElement("div");
@@ -399,6 +414,56 @@
             item.textContent = text;
             messages.appendChild(item);
             messages.scrollTop = messages.scrollHeight;
+            return item;
+        }
+
+        function ensureArray(value) {
+            return Array.isArray(value) ? value : [];
+        }
+
+        function stableStringify(value) {
+            return JSON.stringify(value ?? null);
+        }
+
+        function shouldRender(key, value, hasContent) {
+            if (!hasContent) {
+                return false;
+            }
+
+            const signature = stableStringify(value);
+            if (lastRendered[key] === signature) {
+                return false;
+            }
+
+            lastRendered[key] = signature;
+            return true;
+        }
+
+        function hasEvidenceContent(items) {
+            return Array.isArray(items) && items.length > 0;
+        }
+
+        function hasCandidateReviewContent(review) {
+            const candidates = ensureArray(review?.candidates);
+            return candidates.length > 0
+                || Boolean(review?.review_source)
+                || Boolean(review?.review_summary)
+                || Boolean(review?.followup_question);
+        }
+
+        function hasProcessTraceContent(trace) {
+            return ensureArray(trace?.clue_steps).length > 0
+                || ensureArray(trace?.retrieval_steps).length > 0
+                || ensureArray(trace?.candidate_steps).length > 0;
+        }
+
+        function renderStageStart(payload) {
+            if (processTrace.textContent.trim() === "暂无过程。" || processTrace.textContent.trim() === "开始分析问题") {
+                processTrace.innerHTML = "";
+            }
+            const row = document.createElement("li");
+            row.textContent = `${payload.title || payload.stage}: ${payload.description ? payload.description.slice(0, 80) : "处理中"}`;
+            processTrace.appendChild(row);
         }
 
         function renderEvidence(items) {
@@ -411,8 +476,12 @@
             for (const item of items) {
                 const card = document.createElement("article");
                 card.className = "evidence-card";
+                const movieUrl = item.movie_id ? movieDetailUrlTemplate.replace("/0/", `/${encodeURIComponent(item.movie_id)}/`) : "";
+                const title = `${item.movie_title || "未知电影"} · 片段 ${item.segment_index ?? "未知"}`;
                 card.innerHTML = `
-                    <strong>${escapeHtml(item.movie_title)} · 片段 ${item.segment_index}</strong>
+                    <strong>
+                        ${movieUrl ? `<a href="${movieUrl}">${escapeHtml(title)}</a>` : escapeHtml(title)}
+                    </strong>
                     <div class="meta">${escapeHtml(item.id)} · ${escapeHtml((item.sources || []).join(" + "))}</div>
                     <p class="summary">${escapeHtml(item.summary || "")}</p>
                 `;
@@ -443,15 +512,16 @@
         function renderCandidateReview(review) {
             candidateReview.innerHTML = "";
             const candidates = review?.candidates || [];
-            if (!candidates.length) {
-                candidateReview.innerHTML = `<li>暂无候选。${review?.review_source ? `来源: ${escapeHtml(review.review_source)}` : ""}</li>`;
-                return;
-            }
-
-            if (review.review_source) {
+            if (review?.review_source) {
                 const source = document.createElement("li");
                 source.textContent = `评估来源: ${review.review_source}`;
                 candidateReview.appendChild(source);
+            }
+
+            if (!candidates.length) {
+                const empty = document.createElement("li");
+                empty.textContent = "暂无候选。";
+                candidateReview.appendChild(empty);
             }
 
             for (const item of candidates.slice(0, 5)) {
@@ -469,6 +539,96 @@
                 row.textContent = `建议追问: ${review.followup_question}`;
                 candidateReview.appendChild(row);
             }
+
+            if (review.review_summary) {
+                const row = document.createElement("li");
+                row.textContent = `总结: ${review.review_summary}`;
+                candidateReview.appendChild(row);
+            }
+        }
+
+        function renderProcessTrace(trace) {
+            processTrace.innerHTML = "";
+            const clueSteps = trace?.clue_steps || [];
+            const retrievalSteps = trace?.retrieval_steps || [];
+            const candidateSteps = trace?.candidate_steps || [];
+
+            if (!clueSteps.length && !retrievalSteps.length && !candidateSteps.length) {
+                processTrace.innerHTML = "<li>暂无过程。</li>";
+                return;
+            }
+
+            const latestClue = clueSteps.at(-1);
+            if (latestClue) {
+                const row = document.createElement("li");
+                row.innerHTML = `
+                    线索提取
+                    <br>确定：${escapeHtml((latestClue.confirmed_clues || []).join("、") || "暂无")}
+                    <br>是否足够检索：${latestClue.enough_for_search ? "是" : "否"}
+                `;
+                processTrace.appendChild(row);
+            }
+
+            const recentRetrievalSteps = retrievalSteps.slice(-3);
+            for (const [index, step] of recentRetrievalSteps.entries()) {
+                const candidates = (step.candidates || [])
+                    .map((item) => item.evidence_id ? `${item.movie_title}(${item.evidence_id})` : item.movie_title)
+                    .join("、");
+                const row = document.createElement("li");
+                row.innerHTML = `
+                    检索 ${retrievalSteps.length - recentRetrievalSteps.length + index + 1}
+                    <br>Query：${escapeHtml((step.search_queries || []).join(" / ") || "暂无")}
+                    <br>候选：${escapeHtml(candidates || "暂无")}
+                `;
+                processTrace.appendChild(row);
+            }
+
+            const latestCandidate = candidateSteps.at(-1);
+            if (latestCandidate?.review_summary) {
+                const row = document.createElement("li");
+                row.textContent = `验证总结: ${latestCandidate.review_summary}`;
+                processTrace.appendChild(row);
+            }
+        }
+
+        function appendProcessPayload(payload) {
+            if (!payload) {
+                return;
+            }
+            if (processTrace.textContent.trim() === "暂无过程。" || processTrace.textContent.trim() === "开始分析问题") {
+                processTrace.innerHTML = "";
+            }
+            lastRendered.processPayload = stableStringify(payload);
+
+            if (payload.stage === "clue_extractor") {
+                const clues = ensureArray(payload.data?.confirmed_clues).join("、") || "暂无";
+                const row = document.createElement("li");
+                row.innerHTML = `线索提取<br>确定：${escapeHtml(clues)}<br>是否足够检索：${payload.data?.enough_for_search ? "是" : "否"}`;
+                processTrace.appendChild(row);
+                return;
+            }
+
+            if (payload.stage === "movie_retriever") {
+                const queries = ensureArray(payload.data?.search_queries).join(" / ") || "暂无";
+                const candidates = ensureArray(payload.data?.candidates)
+                    .map((item) => item.evidence_id ? `${item.movie_title}(${item.evidence_id})` : item.movie_title)
+                    .join("、") || "暂无";
+                const row = document.createElement("li");
+                row.innerHTML = `执行检索<br>Query：${escapeHtml(queries)}<br>候选：${escapeHtml(candidates)}`;
+                processTrace.appendChild(row);
+                return;
+            }
+
+            if (payload.stage === "candidate_verifier") {
+                const row = document.createElement("li");
+                row.textContent = `候选验证: ${payload.data?.review_summary || "已完成"}`;
+                processTrace.appendChild(row);
+                return;
+            }
+
+            const row = document.createElement("li");
+            row.textContent = `${payload.title || payload.stage || "过程"}: ${escapeHtml(JSON.stringify(payload.data || payload))}`;
+            processTrace.appendChild(row);
         }
 
         function escapeHtml(value) {
@@ -481,15 +641,7 @@
         }
 
         function getOrCreateThreadId() {
-            const storageKey = "movie-search-thread-id";
-            const existing = sessionStorage.getItem(storageKey);
-            if (existing) {
-                return existing;
-            }
-
-            const value = crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
-            sessionStorage.setItem(storageKey, value);
-            return value;
+            return crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
         }
 
         function getCookie(name) {
@@ -519,6 +671,95 @@
             }
         }
 
+        async function streamAgentResponse(question) {
+            const response = await fetch(agentStreamApiUrl, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": getCookie("csrftoken")
+                },
+                body: JSON.stringify({
+                    question,
+                    thread_id: threadId
+                })
+            });
+
+            if (!response.ok || !response.body) {
+                const data = await response.json().catch(() => ({}));
+                throw new Error(data.detail || data.error || "流式请求失败");
+            }
+
+            if (processTrace.textContent.trim() === "暂无过程。") {
+                processTrace.innerHTML = "";
+            }
+            const answerNode = addMessage("", "agent");
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder("utf-8");
+            let buffer = "";
+            let streamedAnswer = "";
+
+            while (true) {
+                const { value, done } = await reader.read();
+                if (done) {
+                    break;
+                }
+
+                buffer += decoder.decode(value, { stream: true });
+                const events = buffer.split("\n\n");
+                buffer = events.pop() || "";
+
+                for (const rawEvent of events) {
+                    const lines = rawEvent.split("\n");
+                    let eventName = "message";
+                    let dataText = "";
+                    for (const line of lines) {
+                        if (line.startsWith("event:")) {
+                            eventName = line.slice(6).trim();
+                        } else if (line.startsWith("data:")) {
+                            dataText += line.slice(5).trim();
+                        }
+                    }
+
+                    if (!dataText) {
+                        continue;
+                    }
+
+                    const payload = JSON.parse(dataText);
+
+                    if (eventName === "status") {
+                        if (payload.message && processTrace.textContent.trim() === "暂无过程。") {
+                            const row = document.createElement("li");
+                            row.textContent = payload.message;
+                            processTrace.appendChild(row);
+                        }
+                    } else if (eventName === "subagent_start") {
+                        renderStageStart(payload);
+                    } else if (eventName === "process") {
+                        appendProcessPayload(payload);
+                    } else if (eventName === "answer_token") {
+                        streamedAnswer += payload.text || "";
+                        answerNode.textContent = streamedAnswer;
+                        messages.scrollTop = messages.scrollHeight;
+                    } else if (eventName === "final") {
+                        answerNode.textContent = payload.answer || streamedAnswer || "没有返回回答。";
+                        if (shouldRender("evidence", payload.evidence, hasEvidenceContent(payload.evidence))) {
+                            renderEvidence(payload.evidence);
+                        }
+                        renderClueState(payload.clue_state);
+                        if (shouldRender("candidateReview", payload.candidate_review, hasCandidateReviewContent(payload.candidate_review))) {
+                            renderCandidateReview(payload.candidate_review);
+                        }
+                        if (hasProcessTraceContent(payload.process_trace)) {
+                            lastRendered.processTrace = stableStringify(payload.process_trace);
+                            renderProcessTrace(payload.process_trace);
+                        }
+                    } else if (eventName === "error") {
+                        throw new Error(payload.detail || "流式处理失败");
+                    }
+                }
+            }
+        }
+
         form.addEventListener("submit", async (event) => {
             event.preventDefault();
             const question = questionInput.value.trim();
@@ -531,28 +772,7 @@
             sendButton.textContent = "检索中";
 
             try {
-                const response = await fetch(agentApiUrl, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "X-CSRFToken": getCookie("csrftoken")
-                    },
-                    body: JSON.stringify({
-                        question,
-                        top_k: 3,
-                        thread_id: threadId
-                    })
-                });
-                const data = await response.json();
-                if (!response.ok) {
-                    throw new Error(data.detail || data.error || "请求失败");
-                }
-
-                const answer = data.answer || "没有返回回答。";
-                addMessage(answer, "agent");
-                renderEvidence(data.evidence);
-                renderClueState(data.clue_state);
-                renderCandidateReview(data.candidate_review);
+                await streamAgentResponse(question);
             } catch (error) {
                 addMessage(`调用失败：${error.message}`, "agent");
             } finally {

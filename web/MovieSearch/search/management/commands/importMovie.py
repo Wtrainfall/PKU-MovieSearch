@@ -1,10 +1,6 @@
 import json
 from django.core.management.base import BaseCommand
 
-from elasticsearch import Elasticsearch
-from elasticsearch.helpers import bulk
-from concurrent.futures import ThreadPoolExecutor, as_completed
-
 from search.utils.importData import importDataES, importDataDB
 import os
 

@@ -1,6 +1,5 @@
 from elasticsearch import Elasticsearch
 from movies.models import Movie, Actor, Director, Segment
-import json
 import os
 
 class importDataES:

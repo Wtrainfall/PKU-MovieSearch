@@ -1,0 +1,1173 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PKU Movie Search</title>
+    <style>
+        :root {
+            --netflix-red: #E50914;
+            --netflix-dark: #141414;
+            --netflix-card: #222222;
+            --netflix-card-hover: #333333;
+            --netflix-text: #FFFFFF;
+            --netflix-text-muted: #b3b3b3;
+            --netflix-border: #404040;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            min-height: 100vh;
+            color: var(--netflix-text);
+            font-family: "Helvetica Neue", Helvetica, Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: var(--netflix-dark);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            height: 4px;
+            background: var(--netflix-red);
+            z-index: 1000;
+        }
+
+        /* ========== 页面切换 ========== */
+        .page-section { display: none; }
+        .page-section.active { display: flex; }
+        @keyframes pageIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ========== 封面页 ========== */
+        #cover-page {
+            min-height: 100vh;
+            align-items: center;
+            justify-content: center;
+            animation: pageIn 0.5s ease;
+        }
+
+        .cover-bg {
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(circle at 30% 50%, rgba(229, 9, 20, 0.08), transparent 50%),
+                radial-gradient(circle at 70% 80%, rgba(229, 9, 20, 0.05), transparent 50%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .cover-container {
+            text-align: center;
+            max-width: 900px;
+            padding: 40px;
+        }
+
+        .cover-logo {
+            font-size: clamp(48px, 8vw, 96px);
+            font-weight: 900;
+            letter-spacing: -0.03em;
+            color: var(--netflix-text);
+            margin-bottom: 20px;
+            text-shadow: 0 4px 30px rgba(229, 9, 20, 0.3);
+        }
+        .cover-logo span { color: var(--netflix-red); }
+
+        .cover-tagline {
+            font-size: clamp(16px, 2.5vw, 22px);
+            color: var(--netflix-text-muted);
+            margin-bottom: 40px;
+            line-height: 1.6;
+            font-weight: 300;
+        }
+
+        .cover-features {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 50px;
+            flex-wrap: wrap;
+        }
+        .cover-feature {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 20px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.08);
+            transition: all 0.3s ease;
+        }
+        .cover-feature:hover {
+            background: rgba(255,255,255,0.1);
+            border-color: rgba(229, 9, 20, 0.3);
+            transform: translateY(-2px);
+        }
+        .cover-feature-icon { font-size: 20px; }
+        .cover-feature-text { font-size: 13px; color: var(--netflix-text-muted); font-weight: 500; }
+
+        .cover-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            padding: 18px 48px;
+            background: var(--netflix-red);
+            color: white;
+            text-decoration: none;
+            font-size: 18px;
+            font-weight: 700;
+            border-radius: 8px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            box-shadow: 0 8px 32px rgba(229, 9, 20, 0.4);
+            border: none;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+        .cover-btn::before {
+            content: "";
+            position: absolute;
+            top: 0; left: -100%;
+            width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s ease;
+        }
+        .cover-btn:hover { background: #fc1722; transform: scale(1.05); box-shadow: 0 12px 48px rgba(229, 9, 20, 0.6); }
+        .cover-btn:hover::before { left: 100%; }
+        .cover-btn:active { transform: scale(0.98); }
+        .cover-btn-arrow { font-size: 22px; transition: transform 0.3s ease; }
+        .cover-btn:hover .cover-btn-arrow { transform: translateX(4px); }
+
+        /* ========== 聊天页 ========== */
+        #chat-page { min-height: 100vh; }
+        #chat-page.active { display: block; animation: pageIn 0.5s ease; }
+
+        .top-nav {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px 32px;
+            background: linear-gradient(180deg, rgba(0,0,0,0.9) 0%, transparent 100%);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .nav-logo {
+            font-size: 22px;
+            font-weight: 900;
+            color: var(--netflix-text);
+            text-decoration: none;
+            letter-spacing: -0.03em;
+        }
+        .nav-logo span { color: var(--netflix-red); }
+        .nav-back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            background: var(--netflix-red);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+        .nav-back-btn:hover { background: #fc1722; transform: scale(1.03); }
+
+        .chat-page-inner {
+            width: min(1200px, calc(100% - 40px));
+            margin: 0 auto;
+            padding: 32px 0 60px;
+        }
+
+        .chat-panel {
+            background: var(--netflix-card);
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.08);
+            padding: 28px;
+            margin-bottom: 32px;
+            transition: all 0.3s ease;
+        }
+        .chat-panel:hover { border-color: rgba(255,255,255,0.15); }
+
+        .chat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+        .chat-header h2 { margin: 0; font-size: 22px; font-weight: 700; color: var(--netflix-text); }
+        .messages {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 20px;
+            border-radius: 8px;
+            background: rgba(0,0,0,0.3);
+            overflow-y: auto;
+            min-height: 300px;
+            max-height: 500px;
+            border: 1px solid rgba(255,255,255,0.06);
+            margin-bottom: 16px;
+        }
+
+        .message {
+            max-width: 85%;
+            padding: 14px 18px;
+            border-radius: 8px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            font-size: 14px;
+            animation: msgIn 0.3s ease;
+        }
+        @keyframes msgIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+        .message.user { align-self: flex-end; color: white; background: var(--netflix-red); border-bottom-right-radius: 2px; font-weight: 500; }
+        .message.agent { align-self: flex-start; background: var(--netflix-card-hover); border: 1px solid rgba(255,255,255,0.1); border-bottom-left-radius: 2px; color: var(--netflix-text); }
+
+        .composer { display: block; }
+        .input-wrap {
+            position: relative;
+            border: 2px solid rgba(255,255,255,0.15);
+            border-radius: 8px;
+            background: rgba(0,0,0,0.4);
+            transition: border-color 0.2s ease;
+            padding: 14px 80px 14px 16px;
+        }
+        .input-wrap:focus-within { border-color: var(--netflix-red); }
+        .input-wrap textarea {
+            width: 100%; min-height: 20px; max-height: 160px;
+            resize: none; overflow-y: auto;
+            border: none; padding: 0;
+            color: var(--netflix-text); background: transparent;
+            font-family: inherit; font-size: 14px; outline: none;
+            line-height: 1.5;
+        }
+        .input-wrap textarea::placeholder { color: rgba(255,255,255,0.35); }
+
+        .btn-send {
+            position: absolute;
+            bottom: 10px; right: 10px;
+            height: 32px;
+            padding: 0 14px;
+            border: 0; border-radius: 6px;
+            background: var(--netflix-red);
+            color: white; font-size: 13px; font-weight: 700;
+            cursor: pointer; transition: all 0.2s ease;
+            display: flex; align-items: center; justify-content: center;
+            white-space: nowrap;
+            user-select: none;
+        }
+        .btn-send:hover { background: #fc1722; transform: scale(1.04); }
+        .btn-send:active { transform: scale(0.97); }
+        .btn-send.stopping { background: #444; }
+        .btn-send.stopping:hover { background: #e50914; }
+
+        /* 输入辅助下拉 */
+        .suggestions {
+            position: absolute;
+            bottom: calc(100% + 8px);
+            left: -2px; right: -2px;
+            background: #1a1a1a;
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 8px;
+            max-height: 260px;
+            overflow-y: auto;
+            display: none;
+            z-index: 200;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.7);
+        }
+        .suggestions.visible { display: block; animation: fadeUp 0.15s ease; }
+        @keyframes fadeUp { from { opacity:0; transform: translateY(6px); } to { opacity:1; transform: translateY(0); } }
+        .sugg-group-title {
+            padding: 8px 14px 4px;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: rgba(255,255,255,0.3);
+        }
+        .sugg-item {
+            padding: 9px 14px;
+            cursor: pointer;
+            font-size: 13px;
+            color: rgba(255,255,255,0.8);
+            transition: background 0.1s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .sugg-item:hover, .sugg-item.active { background: rgba(255,255,255,0.08); }
+        .sugg-item .sugg-icon { font-size: 14px; opacity: 0.5; flex-shrink: 0; }
+        .sugg-item .sugg-text { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .sugg-item .sugg-text mark { background: none; color: var(--netflix-red); font-weight: 700; }
+        .sugg-item .sugg-hint { font-size: 11px; color: rgba(255,255,255,0.3); flex-shrink: 0; }
+        .suggestions::-webkit-scrollbar { width: 5px; }
+        .suggestions::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
+
+        /* 快捷问题 */
+        .quick-questions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+        .quick-q {
+            padding: 6px 14px;
+            border-radius: 20px;
+            background: rgba(229, 9, 20, 0.1);
+            color: var(--netflix-red);
+            font-size: 12px;
+            font-weight: 500;
+            border: 1px solid rgba(229, 9, 20, 0.3);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+        .quick-q:hover {
+            background: rgba(229, 9, 20, 0.25);
+            border-color: var(--netflix-red);
+            transform: scale(1.05);
+        }
+
+        /* 证据面板 */
+        .evidence-panel {
+            background: var(--netflix-card);
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.08);
+            padding: 28px;
+            margin-bottom: 32px;
+        }
+        .evidence-panel h2 { margin: 0 0 20px; font-size: 24px; font-weight: 800; color: var(--netflix-text); letter-spacing: -0.02em; }
+
+        .evidence-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+        .evidence-card {
+            border-radius: 8px; padding: 20px;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.08);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative; overflow: hidden;
+        }
+        .evidence-card::before {
+            content: ""; position: absolute; top: 0; left: 0;
+            width: 100%; height: 3px; background: var(--netflix-red);
+            transform: scaleX(0); transition: transform 0.3s ease; transform-origin: left;
+        }
+        .evidence-card:hover { transform: translateY(-4px) scale(1.02); box-shadow: 0 12px 40px rgba(0,0,0,0.6); border-color: rgba(229, 9, 20, 0.3); background: var(--netflix-card-hover); }
+        .evidence-card:hover::before { transform: scaleX(1); }
+        .evidence-card strong { display: block; margin-bottom: 10px; color: var(--netflix-text); font-size: 15px; font-weight: 700; }
+        .evidence-meta { color: var(--netflix-text-muted); font-size: 12px; margin-bottom: 12px; font-family: "Courier New", monospace; }
+        .evidence-summary { margin: 0; color: rgba(255,255,255,0.75); font-size: 13px; line-height: 1.7; }
+        .evidence-empty { color: var(--netflix-text-muted); margin: 0; font-style: italic; grid-column: 1 / -1; }
+
+        /* 状态面板 */
+        .state-panel {
+            background: var(--netflix-card);
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.08);
+            padding: 28px;
+        }
+        .state-panel h2 { margin: 0 0 20px; font-size: 24px; font-weight: 800; color: var(--netflix-text); letter-spacing: -0.02em; }
+
+        .state-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+        .state-block {
+            border-radius: 8px; padding: 20px;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.08);
+            transition: all 0.3s ease;
+        }
+        .state-block:hover { border-color: rgba(255,255,255,0.15); background: rgba(0,0,0,0.5); }
+        .state-block h3 { margin: 0 0 14px; font-size: 16px; font-weight: 700; color: var(--netflix-text); padding-bottom: 10px; border-bottom: 2px solid var(--netflix-red); display: inline-block; }
+        .state-list { margin: 0; padding-left: 0; list-style: none; color: var(--netflix-text-muted); line-height: 1.8; font-size: 13px; }
+        .state-list li { padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .state-list li:last-child { border-bottom: none; }
+        .confidence {
+            display: inline-block; margin-left: 8px;
+            color: var(--netflix-red); font-size: 11px; font-weight: 700;
+            text-transform: uppercase; background: rgba(229, 9, 20, 0.15);
+            padding: 2px 8px; border-radius: 4px;
+        }
+
+        @media (max-width: 860px) {
+            .state-grid, .evidence-list { grid-template-columns: 1fr; }
+            .composer { grid-template-columns: 1fr; }
+            .btn-send { min-height: 52px; }
+            .cover-features { gap: 15px; }
+            .cover-container { padding: 28px; }
+            .top-nav { padding: 12px 20px; }
+        }
+
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--netflix-dark); }
+        ::-webkit-scrollbar-thumb { background: var(--netflix-border); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--netflix-red); }
+        ::selection { background: var(--netflix-red); color: white; }
+
+        /* Markdown 渲染样式 */
+        .message.agent h1, .message.agent h2, .message.agent h3 { margin: 16px 0 8px; color: var(--netflix-text); }
+        .message.agent h1 { font-size: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 6px; }
+        .message.agent h2 { font-size: 18px; }
+        .message.agent h3 { font-size: 16px; }
+        .message.agent p { margin: 8px 0; }
+        .message.agent ul, .message.agent ol { margin: 8px 0; padding-left: 24px; }
+        .message.agent li { margin: 4px 0; }
+        .message.agent strong { color: var(--netflix-red); font-weight: 700; }
+        .message.agent em { color: var(--netflix-text-muted); font-style: italic; }
+        .message.agent code {
+            background: rgba(229, 9, 20, 0.15);
+            color: var(--netflix-red);
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: "Courier New", monospace;
+            font-size: 13px;
+        }
+        .message.agent pre {
+            background: rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 6px;
+            padding: 16px;
+            overflow-x: auto;
+            margin: 12px 0;
+        }
+        .message.agent pre code {
+            background: none;
+            color: var(--netflix-text);
+            padding: 0;
+        }
+        .message.agent blockquote {
+            border-left: 3px solid var(--netflix-red);
+            padding-left: 16px;
+            margin: 12px 0;
+            color: var(--netflix-text-muted);
+        }
+        .message.agent a { color: var(--netflix-red); text-decoration: none; }
+        .message.agent a:hover { text-decoration: underline; }
+        .message.agent table { border-collapse: collapse; margin: 12px 0; width: 100%; }
+        .message.agent th, .message.agent td { border: 1px solid rgba(255,255,255,0.1); padding: 8px 12px; text-align: left; }
+        .message.agent th { background: rgba(255,255,255,0.05); font-weight: 700; }
+
+        /* 加载动画 */
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .message.agent.loading { display: flex; align-items: center; gap: 10px; color: var(--netflix-text-muted); font-weight: 400; }
+        .spinner {
+            width: 18px; height: 18px;
+            border: 2px solid rgba(255,255,255,0.15);
+            border-top-color: var(--netflix-red);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ===== 封面页 ===== -->
+<section id="cover-page" class="page-section active">
+    <div class="cover-bg"></div>
+    <div class="cover-container">
+        <h1 class="cover-logo"><span>PKU</span> Movie Search</h1>
+        <p class="cover-tagline">基于 Elasticsearch 混合检索与 DeepAgent 的电影剧本证据检索系统</p>
+
+        <div class="cover-features">
+            <div class="cover-feature">
+                <span class="cover-feature-text">BM25 + Vector 混合检索</span>
+            </div>
+            <div class="cover-feature">
+                <span class="cover-feature-text">Agent 智能分析</span>
+            </div>
+            <div class="cover-feature">
+                <span class="cover-feature-text">证据溯源展示</span>
+            </div>
+        </div>
+
+        <button class="cover-btn" onclick="showChatPage()">
+            开始探索
+            <span class="cover-btn-arrow">&rarr;</span>
+        </button>
+    </div>
+</section>
+
+<!-- ===== 聊天页 ===== -->
+<section id="chat-page" class="page-section">
+    <nav class="top-nav">
+        <button class="nav-back-btn" onclick="showCoverPage()">&larr; 返回首页</button>
+        <a href="#" class="nav-logo" onclick="showCoverPage(); return false;"><span>PKU</span> Movie Search</a>
+    </nav>
+
+    <div class="chat-page-inner">
+        <section class="chat-panel">
+            <div class="chat-header">
+                <h2>AI 检索助手</h2>
+            </div>
+
+            <div id="messages" class="messages">
+                <div class="message agent">你好！请描述你想找的电影剧情或角色，我会帮你检索相关片段。</div>
+            </div>
+
+            <div class="quick-questions">
+                <span class="quick-q">傲慢失明军官和年轻学生互相影响</span>
+                <span class="quick-q">女主假扮未婚妻混入豪门</span>
+                <span class="quick-q">时间循环让主角反复经历同一天</span>
+                <span class="quick-q">卧底警察陷入身份认同危机</span>
+            </div>
+
+            <form id="chat-form" class="composer">
+                <div class="input-wrap">
+                    <textarea id="question" placeholder="输入你的电影检索问题...（Ctrl+Enter 发送）"></textarea>
+                    <button id="send" type="submit" class="btn-send" title="发送（Ctrl+Enter）">&#10148;</button>
+                    <div id="suggestions" class="suggestions"></div>
+                </div>
+            </form>
+        </section>
+
+        <section class="evidence-panel">
+            <h2>检索证据</h2>
+            <div id="evidence-list" class="evidence-list">
+                <p class="evidence-empty">提交问题后，这里会显示 agent 使用的片段 evidence。</p>
+            </div>
+        </section>
+
+        <section class="state-panel">
+            <h2>线索状态</h2>
+            <div class="state-grid">
+                <div class="state-block">
+                    <h3>当前线索</h3>
+                    <ul id="clue-state" class="state-list"><li>暂无线索。</li></ul>
+                </div>
+                <div class="state-block">
+                    <h3>候选验证</h3>
+                    <ul id="candidate-review" class="state-list"><li>暂无候选。</li></ul>
+                </div>
+                <div class="state-block">
+                    <h3>检索过程</h3>
+                    <ul id="process-trace" class="state-list"><li>暂无过程。</li></ul>
+                </div>
+            </div>
+        </section>
+    </div>
+</section>
+
+<script>
+    function showChatPage() {
+        document.getElementById('cover-page').classList.remove('active');
+        document.getElementById('chat-page').classList.add('active');
+    }
+    function showCoverPage() {
+        document.getElementById('chat-page').classList.remove('active');
+        document.getElementById('cover-page').classList.add('active');
+    }
+
+    /* 聊天逻辑 */
+    const form = document.getElementById("chat-form");
+    const questionInput = document.getElementById("question");
+    const sendButton = document.getElementById("send");
+    const messagesEl = document.getElementById("messages");
+    const evidenceList = document.getElementById("evidence-list");
+    const clueState = document.getElementById("clue-state");
+    const candidateReview = document.getElementById("candidate-review");
+    const processTrace = document.getElementById("process-trace");
+    const agentStreamApiUrl = "{% url 'search:agent_stream' %}";
+    const movieDetailUrlTemplate = "{% url 'movies:movie_detail' 0 %}";
+    const lastRendered = {
+        evidence: "",
+        candidateReview: "",
+        processTrace: "",
+        processPayload: ""
+    };
+
+    const threadId = (function() {
+        return crypto.randomUUID ? crypto.randomUUID() : Date.now() + '-' + Math.random();
+    })();
+
+    /* 快捷问题点击填入 */
+    document.querySelectorAll('.quick-q').forEach(function(el) {
+        el.addEventListener('click', function() {
+            questionInput.value = el.textContent;
+            questionInput.focus();
+            autoGrow(questionInput);
+        });
+    });
+
+    /* textarea 自动增高 */
+    function autoGrow(el) {
+        el.style.height = 'auto';
+        el.style.height = Math.min(el.scrollHeight, 180) + 'px';
+    }
+    questionInput.addEventListener('input', function() { autoGrow(this); });
+    // 初始化时也适应内容（如浏览器回填）
+    autoGrow(questionInput);
+
+    /* 输入辅助：历史搜索 + 自动补全 */
+    (function() {
+        const suggEl = document.getElementById('suggestions');
+        const HISTORY_KEY = 'movie-search-history';
+        const MAX_HISTORY = 20;
+
+        // 内置自动补全关键词（电影常见检索意图）
+        const builtins = [
+            { icon: '🔍', text: '帮我找一个', desc: '电影/片段' },
+            { icon: '😈', text: '傲慢', desc: '性格特征' },
+            { icon: '💖', text: '爱情', desc: '情感线索' },
+            { icon: '🔫', text: '暴力', desc: '动作场面' },
+            { icon: '🕵️', text: '卧底', desc: '身份悬念' },
+            { icon: '🌀', text: '时间循环', desc: '时空设定' },
+            { icon: '👤', text: '身份认同', desc: '角色弧光' },
+            { icon: '🎭', text: '假扮', desc: '伪装情节' },
+            { icon: '💀', text: '死亡', desc: '关键转折' },
+            { icon: '🔄', text: '复仇', desc: '动机线索' },
+        ];
+
+        function getHistory() {
+            try { return JSON.parse(sessionStorage.getItem(HISTORY_KEY)) || []; } catch(e) { return []; }
+        }
+        function saveHistory(q) {
+            let arr = getHistory().filter(function(v) { return v !== q; });
+            arr.unshift(q);
+            if (arr.length > MAX_HISTORY) arr = arr.slice(0, MAX_HISTORY);
+            sessionStorage.setItem(HISTORY_KEY, JSON.stringify(arr));
+        }
+
+        function highlightMatch(text, query) {
+            if (!query) return esc(text);
+            var escText = esc(text);
+            var escQ = esc(query);
+            var idx = escText.toLowerCase().indexOf(escQ.toLowerCase());
+            if (idx === -1) return escText;
+            return escText.slice(0, idx)
+                + '<mark>' + escText.slice(idx, idx + escQ.length) + '</mark>'
+                + escText.slice(idx + escQ.length);
+        }
+
+        function showSuggestions() {
+            var val = questionInput.value.trim();
+            var html = '';
+            var hasContent = false;
+
+            // 历史记录（仅无输入时显示）
+            if (!val) {
+                var history = getHistory();
+                if (history.length) {
+                    html += '<div class="sugg-group-title">历史搜索</div>';
+                    history.slice(0, 8).forEach(function(q) {
+                        html += '<div class="sugg-item" data-text="' + esc(q) + '">'
+                            + '<span class="sugg-icon">🕘</span>'
+                            + '<span class="sugg-text">' + esc(q) + '</span>'
+                            + '</div>';
+                        hasContent = true;
+                    });
+                }
+            }
+
+            // 自动补全（有输入时匹配）
+            if (val) {
+                var matches = builtins.filter(function(b) {
+                    return b.text.toLowerCase().indexOf(val.toLowerCase()) !== -1
+                        || b.desc.toLowerCase().indexOf(val.toLowerCase()) !== -1;
+                });
+                if (matches.length) {
+                    html += '<div class="sugg-group-title">自动补全</div>';
+                    matches.forEach(function(b) {
+                        html += '<div class="sugg-item" data-text="' + esc(b.text) + '">'
+                            + '<span class="sugg-icon">' + b.icon + '</span>'
+                            + '<span class="sugg-text">' + highlightMatch(b.text, val) + '</span>'
+                            + '<span class="sugg-hint">' + esc(b.desc) + '</span>'
+                            + '</div>';
+                        hasContent = true;
+                    });
+                }
+            }
+
+            if (!hasContent) { hideSuggestions(); return; }
+            suggEl.innerHTML = html;
+            suggEl.classList.add('visible');
+
+            // 绑定点击
+            suggEl.querySelectorAll('.sugg-item').forEach(function(item) {
+                item.addEventListener('click', function() {
+                    questionInput.value = decodeHTML(this.getAttribute('data-text'));
+                    hideSuggestions();
+                    autoGrow(questionInput);
+                    questionInput.focus();
+                });
+            });
+        }
+
+        function hideSuggestions() {
+            suggEl.classList.remove('visible');
+        }
+
+        function decodeHTML(s) {
+            var d = document.createElement('div');
+            d.innerHTML = s;
+            return d.textContent;
+        }
+
+        // 聚焦 + 输入时显示
+        questionInput.addEventListener('focus', showSuggestions);
+        questionInput.addEventListener('input', showSuggestions);
+
+        // 失焦时延迟隐藏（留出点击时间）
+        questionInput.addEventListener('blur', function() { setTimeout(hideSuggestions, 200); });
+
+        // 键盘导航
+        var activeIdx = -1;
+        questionInput.addEventListener('keydown', function(e) {
+            if (!suggEl.classList.contains('visible')) return;
+            var items = suggEl.querySelectorAll('.sugg-item');
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                activeIdx = Math.min(activeIdx + 1, items.length - 1);
+                updateActive(items);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                activeIdx = Math.max(activeIdx - 1, 0);
+                updateActive(items);
+            } else if (e.key === 'Enter' && activeIdx >= 0) {
+                e.preventDefault();
+                items[activeIdx].click();
+            } else if (e.key === 'Escape') {
+                hideSuggestions();
+            }
+        });
+
+        function updateActive(items) {
+            items.forEach(function(it, i) { it.classList.toggle('active', i === activeIdx); });
+            if (items[activeIdx]) items[activeIdx].scrollIntoView({ block: 'nearest' });
+        }
+
+        // 暴露保存历史的方法
+        window.__saveSearchHistory = saveHistory;
+    })();
+
+    /* Ctrl+Enter / Cmd+Enter 快捷键提交 */
+    questionInput.addEventListener('keydown', function(e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+            e.preventDefault();
+            if (!sendButton.disabled) form.requestSubmit();
+        }
+    });
+
+    function esc(v) {
+        return String(v)
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#039;");
+    }
+
+    function ensureArray(value) {
+        return Array.isArray(value) ? value : [];
+    }
+
+    function stableStringify(value) {
+        return JSON.stringify(value ?? null);
+    }
+
+    function shouldRender(key, value, hasContent) {
+        if (!hasContent) {
+            return false;
+        }
+        const signature = stableStringify(value);
+        if (lastRendered[key] === signature) {
+            return false;
+        }
+        lastRendered[key] = signature;
+        return true;
+    }
+
+    function hasEvidenceContent(items) {
+        return Array.isArray(items) && items.length > 0;
+    }
+
+    function hasCandidateReviewContent(review) {
+        const candidates = ensureArray(review?.candidates);
+        return candidates.length > 0
+            || Boolean(review?.review_source)
+            || Boolean(review?.review_summary)
+            || Boolean(review?.followup_question);
+    }
+
+    function hasProcessTraceContent(trace) {
+        return ensureArray(trace?.clue_steps).length > 0
+            || ensureArray(trace?.retrieval_steps).length > 0
+            || ensureArray(trace?.candidate_steps).length > 0;
+    }
+
+    /* 基础 Markdown 转 HTML（无外部依赖） */
+    function mdToHtml(md) {
+        let html = md;
+        // 代码块
+        html = html.replace(/```(\w*)\n([\s\S]*?)```/g, function(_, lang, code) {
+            return '<pre><code>' + esc(code.trimEnd()) + '</code></pre>';
+        });
+        // 行内代码
+        html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+        // 标题
+        html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+        html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+        html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+        // 粗体
+        html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        // 斜体
+        html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+        // 有序列表
+        html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
+        // 无序列表
+        html = html.replace(/^[-*] (.+)$/gm, '<li>$1</li>');
+        // 段落（连续非空行为一段）
+        html = html.split(/\n\n+/).map(function(para) {
+            para = para.trim();
+            if (!para) return '';
+            if (para.startsWith('<h') || para.startsWith('<pre') || para.startsWith('<li')) return para;
+            return '<p>' + para.replace(/\n/g, '<br>') + '</p>';
+        }).join('');
+        // 包装相邻 li 为 ul
+        html = html.replace(/(<li>.*?<\/li>)+/g, function(match) {
+            return '<ul>' + match + '</ul>';
+        });
+        return html;
+    }
+
+    function addMessage(text, role) {
+        const d = document.createElement("div");
+        d.className = "message " + role;
+        if (role === "agent") {
+            d.innerHTML = mdToHtml(text);
+        } else {
+            d.textContent = text;
+        }
+        messagesEl.appendChild(d);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+        return d;
+    }
+
+    function renderStageStart(payload) {
+        if (processTrace.textContent.trim() === "暂无过程。" || processTrace.textContent.trim() === "开始分析问题") {
+            processTrace.innerHTML = "";
+        }
+        const row = document.createElement("li");
+        row.textContent = `${payload.title || payload.stage}: ${payload.description ? payload.description.slice(0, 80) : "处理中"}`;
+        processTrace.appendChild(row);
+    }
+
+    function renderEvidence(items) {
+        evidenceList.innerHTML = "";
+        if (!items || !items.length) {
+            evidenceList.innerHTML = '<p class="evidence-empty">没有返回 evidence。</p>';
+            return;
+        }
+        for (const it of items) {
+            const card = document.createElement("article");
+            card.className = "evidence-card";
+            const src = (it.sources || []).join(" + ");
+            const title = (it.movie_title || "未知电影") + " · 片段 " + (it.segment_index ?? "未知");
+            const movieUrl = it.movie_id ? movieDetailUrlTemplate.replace("/0/", "/" + encodeURIComponent(it.movie_id) + "/") : "";
+            card.innerHTML =
+                "<strong>" + (movieUrl ? "<a href=\"" + movieUrl + "\">" + esc(title) + "</a>" : esc(title)) + "</strong>" +
+                "<div class=\"evidence-meta\">" + esc(it.id) + " &middot; " + esc(src) + "</div>" +
+                "<p class=\"evidence-summary\">" + esc(it.summary || "") + "</p>";
+            evidenceList.appendChild(card);
+        }
+    }
+
+    function renderClueState(state) {
+        const rows = [
+            ["确定", state && state.confirmed_clues || []],
+            ["不确定", state && state.uncertain_clues || []],
+            ["排除", state && state.excluded_titles || []],
+            ["否认", state && state.negative_feedback || []]
+        ];
+        clueState.innerHTML = "";
+        for (const r of rows) {
+            const li = document.createElement("li");
+            li.textContent = r[0] + ": " + (r[1].length ? r[1].slice(-8).join("、") : "暂无");
+            clueState.appendChild(li);
+        }
+    }
+
+    function renderCandidateReview(review) {
+        candidateReview.innerHTML = "";
+        const cs = review && review.candidates || [];
+        if (review && review.review_source) {
+            const li = document.createElement("li");
+            li.textContent = "评估来源: " + review.review_source;
+            candidateReview.appendChild(li);
+        }
+
+        if (!cs.length) {
+            const li = document.createElement("li");
+            li.textContent = "暂无候选。";
+            candidateReview.appendChild(li);
+        }
+
+        for (const it of cs.slice(0, 5)) {
+            const li = document.createElement("li");
+            li.innerHTML = esc(it.movie_title || "未知") +
+                " <span class=\"confidence\">" + esc(it.confidence || "unknown") + "</span><br>" +
+                "匹配：" + (it.matched_clues || []).join("、");
+            candidateReview.appendChild(li);
+        }
+        if (review.should_ask_followup && review.followup_question) {
+            const li = document.createElement("li");
+            li.textContent = "建议追问: " + review.followup_question;
+            candidateReview.appendChild(li);
+        }
+        if (review.review_summary) {
+            const li = document.createElement("li");
+            li.textContent = "总结: " + review.review_summary;
+            candidateReview.appendChild(li);
+        }
+    }
+
+    function renderProcessTrace(trace) {
+        processTrace.innerHTML = "";
+        const clueSteps = trace?.clue_steps || [];
+        const retrievalSteps = trace?.retrieval_steps || [];
+        const candidateSteps = trace?.candidate_steps || [];
+
+        if (!clueSteps.length && !retrievalSteps.length && !candidateSteps.length) {
+            processTrace.innerHTML = "<li>暂无过程。</li>";
+            return;
+        }
+
+        const latestClue = clueSteps.at(-1);
+        if (latestClue) {
+            const row = document.createElement("li");
+            row.innerHTML =
+                "线索提取<br>确定：" + esc((latestClue.confirmed_clues || []).join("、") || "暂无") +
+                "<br>是否足够检索：" + (latestClue.enough_for_search ? "是" : "否");
+            processTrace.appendChild(row);
+        }
+
+        const recentRetrievalSteps = retrievalSteps.slice(-3);
+        recentRetrievalSteps.forEach(function(step, index) {
+            const candidates = (step.candidates || [])
+                .map(function(item) { return item.evidence_id ? item.movie_title + "(" + item.evidence_id + ")" : item.movie_title; })
+                .join("、");
+            const row = document.createElement("li");
+            row.innerHTML =
+                "检索 " + (retrievalSteps.length - recentRetrievalSteps.length + index + 1) +
+                "<br>Query：" + esc((step.search_queries || []).join(" / ") || "暂无") +
+                "<br>候选：" + esc(candidates || "暂无");
+            processTrace.appendChild(row);
+        });
+
+        const latestCandidate = candidateSteps.at(-1);
+        if (latestCandidate?.review_summary) {
+            const row = document.createElement("li");
+            row.textContent = "验证总结: " + latestCandidate.review_summary;
+            processTrace.appendChild(row);
+        }
+    }
+
+    function appendProcessPayload(payload) {
+        if (!payload) {
+            return;
+        }
+        if (processTrace.textContent.trim() === "暂无过程。" || processTrace.textContent.trim() === "开始分析问题") {
+            processTrace.innerHTML = "";
+        }
+        lastRendered.processPayload = stableStringify(payload);
+
+        if (payload.stage === "clue_extractor") {
+            const clues = ensureArray(payload.data?.confirmed_clues).join("、") || "暂无";
+            const row = document.createElement("li");
+            row.innerHTML = "线索提取<br>确定：" + esc(clues) + "<br>是否足够检索：" + (payload.data?.enough_for_search ? "是" : "否");
+            processTrace.appendChild(row);
+            return;
+        }
+
+        if (payload.stage === "movie_retriever") {
+            const queries = ensureArray(payload.data?.search_queries).join(" / ") || "暂无";
+            const candidates = ensureArray(payload.data?.candidates)
+                .map(function(item) { return item.evidence_id ? item.movie_title + "(" + item.evidence_id + ")" : item.movie_title; })
+                .join("、") || "暂无";
+            const row = document.createElement("li");
+            row.innerHTML = "执行检索<br>Query：" + esc(queries) + "<br>候选：" + esc(candidates);
+            processTrace.appendChild(row);
+            return;
+        }
+
+        if (payload.stage === "candidate_verifier") {
+            const row = document.createElement("li");
+            row.textContent = "候选验证: " + (payload.data?.review_summary || "已完成");
+            processTrace.appendChild(row);
+            return;
+        }
+
+        const row = document.createElement("li");
+        row.textContent = (payload.title || payload.stage || "过程") + ": " + esc(JSON.stringify(payload.data || payload));
+        processTrace.appendChild(row);
+    }
+
+    function getCookie(name) {
+        const cookies = document.cookie ? document.cookie.split(";") : [];
+        for (const c of cookies) {
+            const kv = c.trim().split("=");
+            if (kv[0] === name) return decodeURIComponent(kv.slice(1).join("="));
+        }
+        return "";
+    }
+
+    /* 停止检索 */
+    let abortCtrl = null;
+
+    function removeNode(node) {
+        if (node && node.parentNode) {
+            node.parentNode.removeChild(node);
+        }
+    }
+
+    async function streamAgentResponse(question, signal) {
+        const res = await fetch(agentStreamApiUrl, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": getCookie("csrftoken")
+            },
+            body: JSON.stringify({ question: question, thread_id: threadId }),
+            signal: signal
+        });
+
+        if (!res.ok || !res.body) {
+            const data = await res.json().catch(function() { return {}; });
+            throw new Error(data.detail || data.error || "流式请求失败");
+        }
+
+        if (processTrace.textContent.trim() === "暂无过程。") {
+            processTrace.innerHTML = "";
+        }
+
+        const answerNode = addMessage("", "agent");
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder("utf-8");
+        let buffer = "";
+        let streamedAnswer = "";
+
+        while (true) {
+            const chunk = await reader.read();
+            if (chunk.done) {
+                break;
+            }
+
+            buffer += decoder.decode(chunk.value, { stream: true });
+            const events = buffer.split("\n\n");
+            buffer = events.pop() || "";
+
+            for (const rawEvent of events) {
+                const lines = rawEvent.split("\n");
+                let eventName = "message";
+                let dataText = "";
+                for (const line of lines) {
+                    if (line.startsWith("event:")) {
+                        eventName = line.slice(6).trim();
+                    } else if (line.startsWith("data:")) {
+                        dataText += line.slice(5).trim();
+                    }
+                }
+
+                if (!dataText) {
+                    continue;
+                }
+
+                const payload = JSON.parse(dataText);
+                if (eventName === "status") {
+                    if (payload.message && processTrace.textContent.trim() === "暂无过程。") {
+                        const row = document.createElement("li");
+                        row.textContent = payload.message;
+                        processTrace.appendChild(row);
+                    }
+                } else if (eventName === "subagent_start") {
+                    renderStageStart(payload);
+                } else if (eventName === "process") {
+                    appendProcessPayload(payload);
+                } else if (eventName === "answer_token") {
+                    streamedAnswer += payload.text || "";
+                    answerNode.innerHTML = mdToHtml(streamedAnswer);
+                    messagesEl.scrollTop = messagesEl.scrollHeight;
+                } else if (eventName === "final") {
+                    answerNode.innerHTML = mdToHtml(payload.answer || streamedAnswer || "没有返回回答。");
+                    if (shouldRender("evidence", payload.evidence, hasEvidenceContent(payload.evidence))) {
+                        renderEvidence(payload.evidence);
+                    }
+                    renderClueState(payload.clue_state);
+                    if (shouldRender("candidateReview", payload.candidate_review, hasCandidateReviewContent(payload.candidate_review))) {
+                        renderCandidateReview(payload.candidate_review);
+                    }
+                    if (hasProcessTraceContent(payload.process_trace)) {
+                        lastRendered.processTrace = stableStringify(payload.process_trace);
+                        renderProcessTrace(payload.process_trace);
+                    }
+                } else if (eventName === "error") {
+                    throw new Error(payload.detail || "流式处理失败");
+                }
+            }
+        }
+    }
+
+    form.addEventListener("submit", async function(e) {
+        e.preventDefault();
+        const q = questionInput.value.trim();
+        if (!q) return;
+
+        // 如果正在检索，点击则停止
+        if (sendButton.classList.contains('stopping')) {
+            if (abortCtrl) abortCtrl.abort();
+            sendButton.classList.remove('stopping');
+            sendButton.textContent = "检索";
+            sendButton.disabled = false;
+            questionInput.style.height = 'auto';
+            questionInput.value = '';
+            return;
+        }
+
+        addMessage(q, "user");
+        if (window.__saveSearchHistory) window.__saveSearchHistory(q);
+
+        // 显示加载动画
+        const loadingMsg = document.createElement("div");
+        loadingMsg.className = "message agent loading";
+        loadingMsg.innerHTML = '<div class="spinner"></div><span>正在生成回复...</span>';
+        messagesEl.appendChild(loadingMsg);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+
+        // 创建 AbortController
+        abortCtrl = new AbortController();
+        sendButton.classList.add('stopping');
+        sendButton.textContent = "停止";
+        sendButton.disabled = false; // 可点击停止
+
+        try {
+            removeNode(loadingMsg);
+            await streamAgentResponse(q, abortCtrl.signal);
+        } catch(err) {
+            removeNode(loadingMsg);
+            if (err.name === 'AbortError') {
+                addMessage("已停止检索。", "agent");
+            } else {
+                addMessage("调用失败：" + err.message, "agent");
+            }
+        } finally {
+            abortCtrl = null;
+            sendButton.classList.remove('stopping');
+            sendButton.textContent = "检索";
+            sendButton.disabled = false;
+            questionInput.style.height = 'auto';
+            questionInput.value = '';
+        }
+    });
+</script>
+</body>
+</html>

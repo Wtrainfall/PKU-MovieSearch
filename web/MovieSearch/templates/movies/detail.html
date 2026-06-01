@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ movie.movie_title }} - 电影详情</title>
+    <style>
+        :root {
+            --netflix-red: #E50914;
+            --netflix-dark: #141414;
+            --netflix-card: #222222;
+            --netflix-card-hover: #333333;
+            --netflix-text: #FFFFFF;
+            --netflix-text-muted: #b3b3b3;
+            --netflix-border: #404040;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            color: var(--netflix-text);
+            font-family: "Helvetica Neue", Helvetica, Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+            background:
+                radial-gradient(circle at 18% 8%, rgba(229, 9, 20, 0.12), transparent 36%),
+                radial-gradient(circle at 82% 40%, rgba(229, 9, 20, 0.06), transparent 42%),
+                var(--netflix-dark);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--netflix-red);
+            z-index: 1000;
+        }
+
+        main {
+            width: min(1200px, calc(100% - 40px));
+            margin: 0 auto;
+            padding: 32px 0 60px;
+        }
+
+        a {
+            color: var(--netflix-red);
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 24px;
+            padding: 8px 16px;
+            background: var(--netflix-red);
+            color: #ffffff;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 700;
+            transition: all 0.2s ease;
+        }
+
+        .back-link:hover {
+            background: #fc1722;
+            transform: scale(1.03);
+            text-decoration: none;
+        }
+
+        .header {
+            background: linear-gradient(145deg, rgba(34,34,34,0.96), rgba(20,20,20,0.96));
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 8px;
+            padding: 32px;
+            margin-bottom: 32px;
+            box-shadow: 0 18px 50px rgba(0,0,0,0.4);
+        }
+
+        h1 {
+            margin: 0 0 16px;
+            font-size: clamp(34px, 5vw, 58px);
+            line-height: 1.2;
+            font-weight: 900;
+            letter-spacing: -0.03em;
+        }
+
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 0 0 22px;
+            padding: 0;
+            list-style: none;
+            color: var(--netflix-text-muted);
+        }
+
+        .meta li {
+            padding: 7px 12px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .section {
+            background: var(--netflix-card);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 8px;
+            padding: 28px;
+            margin-bottom: 32px;
+            transition: all 0.3s ease;
+        }
+
+        .section:hover {
+            border-color: rgba(255,255,255,0.15);
+        }
+
+        .section h2 {
+            margin: 0 0 20px;
+            font-size: 24px;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+        }
+
+        .segments-panel summary {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            cursor: pointer;
+            list-style: none;
+        }
+
+        .segments-panel summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .segments-panel summary::after {
+            content: "展开全部";
+            flex: 0 0 auto;
+            color: var(--netflix-red);
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .segments-panel[open] summary::after {
+            content: "收起全部";
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 18px;
+        }
+
+        .info-item {
+            border-radius: 8px;
+            padding: 18px;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .info-item strong {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--netflix-text);
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--netflix-red);
+            width: fit-content;
+        }
+
+        .info-item span,
+        .description {
+            color: var(--netflix-text-muted);
+            line-height: 1.7;
+        }
+
+        .segments {
+            display: grid;
+            gap: 16px;
+        }
+
+        .segment {
+            border-radius: 8px;
+            padding: 18px;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.08);
+            transition: all 0.3s ease;
+        }
+
+        .segment:hover {
+            background: var(--netflix-card-hover);
+            border-color: rgba(229, 9, 20, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .segment h3 {
+            margin: 0;
+            font-size: 16px;
+            color: var(--netflix-text);
+        }
+
+        .segment p {
+            margin: 10px 0 0;
+            color: rgba(255,255,255,0.75);
+            line-height: 1.7;
+        }
+
+        .segment p strong {
+            color: var(--netflix-text);
+        }
+
+        .script {
+            max-height: 160px;
+            overflow: auto;
+            white-space: pre-wrap;
+            background: rgba(0,0,0,0.45);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 6px;
+            padding: 12px;
+            font-size: 14px;
+            color: rgba(255,255,255,0.78);
+        }
+
+        .empty {
+            color: var(--netflix-text-muted);
+        }
+
+        .pagination {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+            margin-top: 18px;
+            padding-top: 16px;
+            border-top: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .pagination a,
+        .pagination span {
+            display: inline-flex;
+            align-items: center;
+            min-height: 34px;
+            padding: 0 11px;
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 6px;
+            background: rgba(0,0,0,0.3);
+            color: var(--netflix-text-muted);
+            font-size: 14px;
+        }
+
+        .pagination a:hover {
+            border-color: var(--netflix-red);
+            color: #ffffff;
+            text-decoration: none;
+        }
+
+        .pagination .current {
+            border-color: var(--netflix-red);
+            background: rgba(229, 9, 20, 0.18);
+            color: #ffffff;
+        }
+
+        .pagination .summary {
+            border: 0;
+            padding-left: 0;
+            background: transparent;
+            color: var(--netflix-text-muted);
+        }
+
+        @media (max-width: 760px) {
+            main {
+                width: min(100% - 28px, 1200px);
+                padding-top: 24px;
+            }
+
+            .header,
+            .section {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+<main>
+    <a class="back-link" href="{% url 'movies:home' %}">返回首页</a>
+
+    <section class="header">
+        <h1>{{ movie.movie_title }}</h1>
+        <ul class="meta">
+            <li>年份：{{ movie.year|default:"暂无" }}</li>
+            <li>类型：{{ movie.genre|default:"暂无" }}</li>
+            <li>评分：{{ movie.rating|default:"暂无" }}</li>
+        </ul>
+        <div class="description">{{ movie.description|default:"暂无简介" }}</div>
+    </section>
+
+    <section class="section">
+        <h2>基本信息</h2>
+        <div class="info-grid">
+            <div class="info-item">
+                <strong>导演</strong>
+                <span>
+                    {% for director in movie.directors.all %}
+                        {{ director.director_name }}{% if not forloop.last %}、{% endif %}
+                    {% empty %}
+                        暂无
+                    {% endfor %}
+                </span>
+            </div>
+            <div class="info-item">
+                <strong>演员</strong>
+                <span>
+                    {% for actor in movie.actors.all %}
+                        {{ actor.actor_name }}{% if not forloop.last %}、{% endif %}
+                    {% empty %}
+                        暂无
+                    {% endfor %}
+                </span>
+            </div>
+            <div class="info-item">
+                <strong>标签</strong>
+                <span>{{ movie.tags|default:"暂无" }}</span>
+            </div>
+        </div>
+    </section>
+
+    <details class="section segments-panel" open>
+        <summary>
+            <h2>剧本片段（{{ segment_count }}）</h2>
+        </summary>
+        <p class="empty">
+            当前显示第 {{ page_obj.start_index }}-{{ page_obj.end_index }} 条，共 {{ segment_count }} 条。
+        </p>
+        <div class="segments">
+            {% for segment in segments %}
+                <article class="segment">
+                    <h3>片段 {{ segment.segment_order|default:segment.segment_id }}</h3>
+                    <p><strong>摘要：</strong>{{ segment.summary_content|default:"暂无摘要" }}</p>
+                    <p class="script">{{ segment.script_content|default:"暂无剧本内容"|truncatechars:1200 }}</p>
+                </article>
+            {% empty %}
+                <p class="empty">暂无剧本片段。</p>
+            {% endfor %}
+        </div>
+        {% if page_obj.paginator.num_pages > 1 %}
+            <nav class="pagination" aria-label="剧本片段分页">
+                <span class="summary">第 {{ page_obj.number }} / {{ page_obj.paginator.num_pages }} 页</span>
+                {% if page_obj.has_previous %}
+                    <a href="?page=1">首页</a>
+                    <a href="?page={{ page_obj.previous_page_number }}">上一页</a>
+                {% endif %}
+                {% for page_number in page_obj.paginator.page_range %}
+                    {% if page_number == page_obj.number %}
+                        <span class="current">{{ page_number }}</span>
+                    {% elif page_number >= page_obj.number|add:"-2" and page_number <= page_obj.number|add:"2" %}
+                        <a href="?page={{ page_number }}">{{ page_number }}</a>
+                    {% endif %}
+                {% endfor %}
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}">下一页</a>
+                    <a href="?page={{ page_obj.paginator.num_pages }}">末页</a>
+                {% endif %}
+            </nav>
+        {% endif %}
+    </details>
+</main>
+</body>
+</html>
